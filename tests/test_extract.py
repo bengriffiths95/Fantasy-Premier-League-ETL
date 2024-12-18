@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch
 import responses
 import pytest
 from moto import mock_aws
@@ -7,11 +8,38 @@ import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
 from python_files.extract import (
+    extract_data,
     generate_endpoints,
     retrieve_data,
     generate_filename,
     save_json_to_s3,
 )
+
+
+@mock_aws
+class TestExtractData(unittest.TestCase):
+    def setUp(self):
+        """Mocked AWS Credentials for moto and test bucket"""
+        os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+        os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+        os.environ["AWS_SECURITY_TOKEN"] = "testing"
+        os.environ["AWS_SESSION_TOKEN"] = "testing"
+        os.environ["AWS_DEFAULT_REGION"] = "eu-west-2"
+
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="test-bucket")
+
+    @patch("python_files.extract.retrieve_data")
+    @patch("python_files.extract.generate_endpoints")
+    def test_extract_function(self, mock_generate_endpoints, mock_retrieve_data):
+        mock_generate_endpoints.return_value = ["test1", "test2"]
+        mock_retrieve_data.return_value = [{"key": "value"}]
+
+        extract_data(12345, "test-bucket")
+
+        s3 = boto3.client("s3", region_name="us-east-1")
+        output = s3.list_objects_v2(Bucket="test-bucket")
+        assert output["KeyCount"] == 2
 
 
 class TestGenerateEndpoints:
@@ -55,7 +83,7 @@ class TestGenerateFileName:
         endpoint = "test"
         current_timestamp = datetime.now().strftime("%Y-%m-%d")
         output = generate_filename(endpoint)
-        assert output == f"{current_timestamp}-{endpoint}.json"
+        assert output == f"{current_timestamp}/{endpoint}.json"
 
 
 @mock_aws
