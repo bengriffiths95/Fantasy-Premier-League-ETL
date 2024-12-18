@@ -14,6 +14,10 @@ def retrieve_data(endpoint):
         print("Error:", http_err)
 
 
+def generate_filename(endpoint):
+    return f'{datetime.now().strftime("%Y-%m-%d")}-{endpoint}.json'
+
+
 def save_json_to_s3(body, bucket, filename):
     try:
         s3 = boto3.client("s3")
