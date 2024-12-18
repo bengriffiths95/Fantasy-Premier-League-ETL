@@ -5,6 +5,15 @@ from botocore.exceptions import ClientError
 from datetime import datetime
 
 
+def extract_data(team_id, bucket_name):
+    endpoints_list = generate_endpoints(team_id)
+
+    for endpoint in endpoints_list:
+        data = retrieve_data(endpoint)
+        filename = generate_filename(endpoint)
+        save_json_to_s3(data, bucket_name, filename)
+
+
 def generate_endpoints(team_id):
     target_endpoints = [
         f"fixtures",
@@ -31,7 +40,7 @@ def retrieve_data(endpoint):
 
 
 def generate_filename(endpoint):
-    return f'{datetime.now().strftime("%Y-%m-%d")}-{endpoint}.json'
+    return f'{datetime.now().strftime("%Y-%m-%d")}/{endpoint}.json'
 
 
 def save_json_to_s3(body, bucket, filename):
@@ -42,3 +51,4 @@ def save_json_to_s3(body, bucket, filename):
     except ClientError as e:
         print("Error: ", e)
         raise
+    
