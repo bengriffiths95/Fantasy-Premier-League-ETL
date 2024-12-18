@@ -1,13 +1,29 @@
-import requests, json
+import requests
+import json
 import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
 
 
+def generate_endpoints(team_id):
+    target_endpoints = [
+        f"fixtures",
+        f"bootstrap-static",
+        f"entry/{team_id}/history",
+        f"entry/{team_id}",
+    ]
+    gw_endpoints = ["event/{}/live", "entry/{}/event/{}/picks"]
+
+    endpoints_list = list(target_endpoints)
+    endpoints_list.extend(gw_endpoints[0].format(i) for i in range(38))
+    endpoints_list.extend(gw_endpoints[1].format(team_id, i) for i in range(38))
+    return endpoints_list
+
+
 def retrieve_data(endpoint):
     try:
         base_url = "https://fantasy.premierleague.com/api/"
-        response = requests.get(base_url + endpoint, timeout=5)
+        response = requests.get(base_url + endpoint + "/", timeout=5)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as http_err:
@@ -26,6 +42,3 @@ def save_json_to_s3(body, bucket, filename):
     except ClientError as e:
         print("Error: ", e)
         raise
-
-
-retrieve_data("fixtures/")

@@ -3,10 +3,33 @@ import pytest
 import unittest
 from moto import mock_aws
 import os
+from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
-from python_files.extract import retrieve_data, generate_filename, save_json_to_s3
+from python_files.extract import (
+    generate_endpoints,
+    retrieve_data,
+    generate_filename,
+    save_json_to_s3,
+)
+
+
+class TestGenerateEndpoints:
+
+    def test_function_returns_list(self):
+        load_dotenv()
+        team_id = os.environ["FPL_TID"]
+        output = generate_endpoints(team_id)
+        assert isinstance(output, list)
+
+    def test_function_returns_key_error_with_missing_env_variable(self):
+        with pytest.raises(TypeError) as err:
+            generate_endpoints()
+        assert (
+            str(err.value)
+            == "generate_endpoints() missing 1 required positional argument: 'team_id'"
+        )
 
 
 class TestRetrieveData:
@@ -16,7 +39,7 @@ class TestRetrieveData:
             "https://fantasy.premierleague.com/api/fixtures/",
             json=[{"key": "value"}],
         )
-        output = retrieve_data("fixtures/")
+        output = retrieve_data("fixtures")
         assert output == [{"key": "value"}]
 
     @responses.activate
@@ -26,7 +49,7 @@ class TestRetrieveData:
             body=Exception("404 Not Found"),
         )
         with pytest.raises(Exception) as err:
-            retrieve_data("test/")
+            retrieve_data("test")
         assert str(err.value) == "404 Not Found"
 
 
