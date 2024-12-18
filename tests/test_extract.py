@@ -1,9 +1,8 @@
+import os
+import unittest
 import responses
 import pytest
-import unittest
 from moto import mock_aws
-import os
-from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
@@ -18,9 +17,7 @@ from python_files.extract import (
 class TestGenerateEndpoints:
 
     def test_function_returns_list(self):
-        load_dotenv()
-        team_id = os.environ["FPL_TID"]
-        output = generate_endpoints(team_id)
+        output = generate_endpoints(12345)
         assert isinstance(output, list)
 
     def test_function_returns_key_error_with_missing_env_variable(self):
