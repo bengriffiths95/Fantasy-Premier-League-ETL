@@ -7,7 +7,7 @@ from moto import mock_aws
 import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
-from python_files.extract import (
+from scripts.extract import (
     extract_data,
     generate_endpoints,
     retrieve_data,
