@@ -7,7 +7,7 @@ from moto import mock_aws
 import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
-from python_files.extract import (
+from scripts.extract import (
     extract_data,
     generate_endpoints,
     retrieve_data,
@@ -29,8 +29,8 @@ class TestExtractData(unittest.TestCase):
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="test-bucket")
 
-    @patch("python_files.extract.retrieve_data")
-    @patch("python_files.extract.generate_endpoints")
+    @patch("scripts.extract.retrieve_data")
+    @patch("scripts.extract.generate_endpoints")
     def test_extract_function(self, mock_generate_endpoints, mock_retrieve_data):
         mock_generate_endpoints.return_value = ["test1", "test2"]
         mock_retrieve_data.return_value = [{"key": "value"}]
