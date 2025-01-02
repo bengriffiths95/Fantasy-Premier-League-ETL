@@ -51,4 +51,3 @@ def save_json_to_s3(body, bucket, filename):
     except ClientError as e:
         print("Error: ", e)
         raise
-    
