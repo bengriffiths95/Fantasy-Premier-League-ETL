@@ -6,7 +6,11 @@ from moto import mock_aws
 import boto3
 from botocore.exceptions import ClientError
 import pandas as pd
-from scripts.transform import retrieve_s3_json, save_df_to_parquet_s3
+from scripts.transform import (
+    retrieve_s3_json,
+    save_df_to_parquet_s3,
+    transform_fact_players,
+)
 
 
 @mock_aws
@@ -49,7 +53,31 @@ class TestJSONtoList(unittest.TestCase):
             == "An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist."
         )
 
-test_df = pd.DataFrame([{'code': 2444613, 'event': None, 'finished': False, 'finished_provisional': False, 'id': 144, 'kickoff_time': None, 'minutes': 0, 'provisional_start_time': True, 'started': None, 'team_a': 12, 'team_a_score': None, 'team_h': 8, 'team_h_score': None, 'stats': [], 'team_h_difficulty': 5, 'team_a_difficulty': 3, 'pulse_id': 115970}])
+
+test_df = pd.DataFrame(
+    [
+        {
+            "code": 2444613,
+            "event": None,
+            "finished": False,
+            "finished_provisional": False,
+            "id": 144,
+            "kickoff_time": None,
+            "minutes": 0,
+            "provisional_start_time": True,
+            "started": None,
+            "team_a": 12,
+            "team_a_score": None,
+            "team_h": 8,
+            "team_h_score": None,
+            "stats": [],
+            "team_h_difficulty": 5,
+            "team_a_difficulty": 3,
+            "pulse_id": 115970,
+        }
+    ]
+)
+
 
 class TestDfToParquetToS3(unittest.TestCase):
     @patch("scripts.transform.wr.s3.to_parquet")
@@ -76,3 +104,42 @@ class TestDfToParquetToS3(unittest.TestCase):
 
         # assertion
         mock_print.assert_any_call("Error processing test_table: NoSuchBucket")
+
+
+class TestTransformFactTable:
+    @patch("scripts.transform.retrieve_s3_json")
+    def test_returns_dataframe(self, mock_api_data):
+        mock_api_data.return_value = {
+            "elements": [{"team_code": 1, "id": 1}],
+            "events": [{"id": 1}],
+        }
+
+        output_df = transform_fact_players("test")
+
+        assert isinstance(output_df, pd.DataFrame)
+
+    @patch("scripts.transform.retrieve_s3_json")
+    def test_formats_columns_correctly(self, mock_api_data):
+        mock_api_data.return_value = {
+            "elements": [{"team_code": 1, "id": 1}],
+            "events": [{"id": 1}],
+        }
+
+        expected_df = pd.DataFrame(
+            {"player_id": {0: 1}, "team_id": {0: 1}, "gameweek_id": {0: 1}}
+        )
+
+        output_df = transform_fact_players("test")
+
+        pd.testing.assert_frame_equal(
+            output_df.reset_index(drop=True), expected_df.reset_index(drop=True)
+        )
+
+    @patch("scripts.transform.retrieve_s3_json")
+    def test_handles_exceptions_correctly(self, mock_api_data):
+        mock_api_data.return_value = {
+            "elements": [{"team_code": 1, "id": 1}],
+            "test": [{"id": 1}],
+        }
+        with pytest.raises(KeyError, match="Missing required columns"):
+            transform_fact_players("test")

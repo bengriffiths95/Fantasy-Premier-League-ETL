@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 import boto3
 import awswrangler as wr
+import pandas as pd
 
 
 def retrieve_s3_json(bucket_name, file_name):
@@ -12,7 +13,6 @@ def retrieve_s3_json(bucket_name, file_name):
             Key=file_name,
         )
         response = json.loads(response["Body"].read().decode("utf-8"))
-        print(response)
         return response
     except Exception as e:
         print("Error: ", e)
@@ -55,3 +55,32 @@ def save_df_to_parquet_s3(table_name, table_df, bucket):
         print("Added to bucket: ", output)
     except Exception as e:
         print(f"Error processing {table_name}: {e}")
+
+
+def transform_fact_players(bucket_name):
+    try:
+        current_timestamp = datetime.now().strftime("%Y-%m-%d")
+
+        # retrieve JSON files from S3 bucket
+        bootstrap_static_list = retrieve_s3_json(
+            bucket_name, f"2025-01-03/bootstrap-static.json"
+        )
+
+        # transform lists into DataFrames
+        bs_elements_df = pd.DataFrame(bootstrap_static_list["elements"])
+        bs_events_df = pd.DataFrame(bootstrap_static_list["events"])
+
+        # create temp DataFrames with required columns
+        temp_gw_df = bs_events_df[["id"]].rename(columns={"id": "gameweek_id"})
+        temp_bs_df = bs_elements_df[["id", "team_code"]].rename(
+            columns={"id": "player_id", "team_code": "team_id"}
+        )
+
+        # merge temp DataFrames
+        fact_players_df = pd.merge(temp_bs_df, temp_gw_df, how="cross")
+        fact_players_df.index.name = "entry_id"
+
+        return fact_players_df
+
+    except KeyError as e:
+        raise KeyError(f"Missing required columns: {e}")
