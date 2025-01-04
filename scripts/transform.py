@@ -63,7 +63,7 @@ def transform_fact_players(bucket_name):
 
         # retrieve JSON files from S3 bucket
         bootstrap_static_list = retrieve_s3_json(
-            bucket_name, f"2025-01-03/bootstrap-static.json"
+            bucket_name, f"{current_timestamp}/bootstrap-static.json"
         )
 
         # transform lists into DataFrames
