@@ -10,6 +10,7 @@ from scripts.transform import (
     retrieve_s3_json,
     save_df_to_parquet_s3,
     transform_fact_players,
+    transform_dim_players,
 )
 
 
@@ -131,9 +132,46 @@ class TestTransformFactTable:
 
         output_df = transform_fact_players("test")
 
-        pd.testing.assert_frame_equal(
-            output_df.reset_index(drop=True), expected_df.reset_index(drop=True)
+        pd.testing.assert_frame_equal(output_df, expected_df)
+
+    @patch("scripts.transform.retrieve_s3_json")
+    def test_handles_exceptions_correctly(self, mock_api_data):
+        mock_api_data.return_value = {
+            "elements": [{"team_code": 1, "id": 1}],
+            "test": [{"id": 1}],
+        }
+        with pytest.raises(KeyError, match="Missing required columns"):
+            transform_fact_players("test")
+
+
+class TestTransformDimPlayersTable:
+    @patch("scripts.transform.retrieve_s3_json")
+    def test_formats_columns_correctly(self, mock_api_data):
+        mock_api_data.return_value = {
+            "elements": [
+                {
+                    "first_name": "test_first",
+                    "second_name": "test_second",
+                    "web_name": "test",
+                    "id": 1,
+                    "team_code": 1,
+                }
+            ],
+        }
+
+        expected_df = pd.DataFrame(
+            {
+                "first_name": {0: "test_first"},
+                "second_name": {0: "test_second"},
+                "web_name": {0: "test"},
+                "player_id": {0: 1},
+                "team_id": {0: 1},
+            }
         )
+
+        output_df = transform_dim_players("test")
+
+        pd.testing.assert_frame_equal(output_df, expected_df)
 
     @patch("scripts.transform.retrieve_s3_json")
     def test_handles_exceptions_correctly(self, mock_api_data):

@@ -78,9 +78,34 @@ def transform_fact_players(bucket_name):
 
         # merge temp DataFrames
         fact_players_df = pd.merge(temp_bs_df, temp_gw_df, how="cross")
-        fact_players_df.index.name = "entry_id"
 
         return fact_players_df
+
+    except KeyError as e:
+        raise KeyError(f"Missing required columns: {e}")
+
+
+def transform_dim_players(bucket_name):
+    try:
+        current_timestamp = datetime.now().strftime("%Y-%m-%d")
+
+        # retrieve JSON files from S3 bucket
+        bootstrap_static_list = retrieve_s3_json(
+            bucket_name, f"{current_timestamp}/bootstrap-static.json"
+        )
+
+        # transform list into DataFrame
+        dim_players_df = pd.DataFrame(bootstrap_static_list["elements"])
+
+        # rename columns
+        dim_players_df.rename(
+            columns={"id": "player_id", "team_code": "team_id"}, inplace=True
+        )
+
+        # return DataFrame
+        return dim_players_df[
+            ["first_name", "second_name", "web_name", "player_id", "team_id"]
+        ]
 
     except KeyError as e:
         raise KeyError(f"Missing required columns: {e}")
