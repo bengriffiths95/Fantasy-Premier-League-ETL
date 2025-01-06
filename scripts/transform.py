@@ -3,6 +3,25 @@ from datetime import datetime
 import boto3
 import awswrangler as wr
 import pandas as pd
+from scripts.helpers import generate_filename
+
+
+def transform_data(source_bucket, destination_bucket):
+    try:
+        save_df_to_parquet_s3(
+            "fact_players", transform_fact_players(source_bucket), destination_bucket
+        )
+        save_df_to_parquet_s3(
+            "dim_players", transform_dim_players(source_bucket), destination_bucket
+        )
+        save_df_to_parquet_s3(
+            "dim_teams", transform_dim_teams(source_bucket), destination_bucket
+        )
+        save_df_to_parquet_s3(
+            "dim_fixtures", transform_dim_fixtures(source_bucket), destination_bucket
+        )
+    except Exception as e:
+        print(e)
 
 
 def retrieve_s3_json(bucket_name, file_name):
@@ -15,11 +34,11 @@ def retrieve_s3_json(bucket_name, file_name):
         response = json.loads(response["Body"].read().decode("utf-8"))
         return response
     except Exception as e:
-        print("Error: ", e)
+        print("retrieve_s3_json Error: ", e)
         raise
 
 
-def save_df_to_parquet_s3(table_name, table_df, bucket):
+def save_df_to_parquet_s3(table_name, table_df, destination_bucket):
     """
     Save a dataframe to s3 bucket
 
@@ -43,18 +62,15 @@ def save_df_to_parquet_s3(table_name, table_df, bucket):
     """
 
     try:
-        # creates current timestamp for s3 file name
-        current_timestamp = datetime.now().strftime("%Y-%m-%d")
-
         # set the desired location for the parquet file
-        path = f"s3://{bucket}/{current_timestamp}/{table_name}.parquet"
+        path = f"s3://{destination_bucket}/{generate_filename(table_name)}.parquet"
 
         # convert the DataFrame to parquet and save to path in s3 bucket
         output = wr.s3.to_parquet(table_df, path)
 
         print("Added to bucket: ", output)
     except Exception as e:
-        print(f"Error processing {table_name}: {e}")
+        print(f"save_df_to_parquet_s3 Error processing {table_name}: {e}")
 
 
 def transform_fact_players(bucket_name):
@@ -82,7 +98,7 @@ def transform_fact_players(bucket_name):
         return fact_players_df
 
     except KeyError as e:
-        raise KeyError(f"Missing required columns: {e}")
+        raise KeyError(f"transform_fact_players Missing required columns: {e}")
 
 
 def transform_dim_players(bucket_name):
@@ -108,7 +124,7 @@ def transform_dim_players(bucket_name):
         ]
 
     except KeyError as e:
-        raise KeyError(f"Missing required columns: {e}")
+        raise KeyError(f"transform_dim_players Missing required columns: {e}")
 
 
 def transform_dim_teams(bucket_name):
@@ -133,13 +149,11 @@ def transform_dim_teams(bucket_name):
             inplace=True,
         )
 
-        print(dim_teams_df[["team_id", "team_name", "team_name_short"]])
-
         # return DataFrame
         return dim_teams_df[["team_id", "team_name", "team_name_short"]]
 
     except KeyError as e:
-        raise KeyError(f"Missing required columns: {e}")
+        raise KeyError(f"transform_dim_teams Missing required columns: {e}")
 
 
 def transform_dim_fixtures(bucket_name):
@@ -196,4 +210,4 @@ def transform_dim_fixtures(bucket_name):
         ]
 
     except KeyError as e:
-        raise KeyError(f"Missing required columns: {e}")
+        raise KeyError(f"transform_dim_fixtures Missing required columns: {e}")

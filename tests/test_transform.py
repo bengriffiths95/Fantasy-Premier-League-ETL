@@ -13,7 +13,56 @@ from scripts.transform import (
     transform_dim_players,
     transform_dim_teams,
     transform_dim_fixtures,
+    transform_data,
 )
+
+
+class TestTransformFunction(unittest.TestCase):
+    @patch("scripts.transform.retrieve_s3_json")
+    @patch("scripts.transform.wr.s3.to_parquet")
+    def test_transform_function(self, mock_df_to_parquet, mock_retrieve_json):
+        # mock aws wrangler and extracted data lists
+        mock_df_to_parquet.return_value = '{"paths": ["s3://test-bucket/2025-01-02 12:52:03/test.parquet"], "partitions_values": []}'
+        mock_retrieve_json.side_effect = [
+            {
+                "elements": [{"team_code": 1, "id": 1}],
+                "events": [{"id": 1}],
+            },
+            {
+                "elements": [
+                    {
+                        "first_name": "test_first",
+                        "second_name": "test_second",
+                        "web_name": "test",
+                        "id": 1,
+                        "team_code": 1,
+                    }
+                ],
+            },
+            {
+                "teams": [{"code": 3, "name": "Arsenal", "short_name": "ARS"}],
+            },
+            [
+                {
+                    "id": 1,
+                    "event": 1,
+                    "finished": True,
+                    "kickoff_time": "2024-08-16T19:00:00Z",
+                    "team_h": 3,
+                    "team_a": 4,
+                    "team_h_score": 2,
+                    "team_a_score": 0,
+                    "team_h_difficulty": 1,
+                    "team_a_difficulty": 5,
+                }
+            ],
+        ]
+
+        # invoke function
+        transform_data("test_bucket_1", "test_bucket_2")
+
+        # check mock was called correctly
+        assert mock_df_to_parquet.call_count == 4
 
 
 @mock_aws
@@ -106,7 +155,9 @@ class TestDfToParquetToS3(unittest.TestCase):
         save_df_to_parquet_s3("test_table", test_df, "test_bucket")
 
         # assertion
-        mock_print.assert_any_call("Error processing test_table: NoSuchBucket")
+        mock_print.assert_any_call(
+            "save_df_to_parquet_s3 Error processing test_table: NoSuchBucket"
+        )
 
 
 class TestTransformFactTable:

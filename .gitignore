@@ -34,6 +34,7 @@ MANIFEST
 
 # Other
 *coverage
+testing.py
 
 # Terraform
 **/.terraform/*
