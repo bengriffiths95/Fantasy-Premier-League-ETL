@@ -140,3 +140,60 @@ def transform_dim_teams(bucket_name):
 
     except KeyError as e:
         raise KeyError(f"Missing required columns: {e}")
+
+
+def transform_dim_fixtures(bucket_name):
+    try:
+        current_timestamp = datetime.now().strftime("%Y-%m-%d")
+
+        # retrieve JSON files from S3 bucket
+        fixtures_list = retrieve_s3_json(
+            bucket_name, f"{current_timestamp}/fixtures.json"
+        )
+
+        # transform list into DataFrame
+        dim_fixtures_df = pd.DataFrame(fixtures_list)
+
+        # rename columns
+        dim_fixtures_df.rename(
+            columns={
+                "id": "fixture_id",
+                "event": "gameweek_id",
+                "finished": "match_finished",
+                "team_h": "home_team_id",
+                "team_a": "away_team_id",
+                "team_h_score": "home_team_score",
+                "team_a_score": "away_team_score",
+                "team_h_difficulty": "home_team_difficulty",
+                "team_a_difficulty": "away_team_difficulty",
+            },
+            inplace=True,
+        )
+
+        # transform dates
+        dim_fixtures_df["fixture_date"] = pd.to_datetime(
+            dim_fixtures_df["kickoff_time"]
+        ).dt.date
+        dim_fixtures_df["fixture_time"] = pd.to_datetime(
+            dim_fixtures_df["kickoff_time"]
+        ).dt.time
+
+        # return DataFrame
+        return dim_fixtures_df[
+            [
+                "fixture_id",
+                "gameweek_id",
+                "fixture_date",
+                "fixture_time",
+                "match_finished",
+                "home_team_id",
+                "away_team_id",
+                "home_team_score",
+                "away_team_score",
+                "home_team_difficulty",
+                "away_team_difficulty",
+            ]
+        ]
+
+    except KeyError as e:
+        raise KeyError(f"Missing required columns: {e}")

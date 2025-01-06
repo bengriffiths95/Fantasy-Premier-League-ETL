@@ -12,6 +12,7 @@ from scripts.transform import (
     transform_fact_players,
     transform_dim_players,
     transform_dim_teams,
+    transform_dim_fixtures,
 )
 
 
@@ -211,3 +212,54 @@ class TestTransformDimTeamsTable:
         }
         with pytest.raises(KeyError, match="Missing required columns"):
             transform_dim_teams("test")
+
+
+class TestTransformDimFixturesTable:
+    @patch("scripts.transform.retrieve_s3_json")
+    def test_formats_columns_correctly(self, mock_api_data):
+        mock_api_data.return_value = [
+            {
+                "id": 1,
+                "event": 1,
+                "finished": True,
+                "kickoff_time": "2024-08-16T19:00:00Z",
+                "team_h": 3,
+                "team_a": 4,
+                "team_h_score": 2,
+                "team_a_score": 0,
+                "team_h_difficulty": 1,
+                "team_a_difficulty": 5,
+            }
+        ]
+
+        expected_df = pd.DataFrame(
+            {
+                "fixture_id": {0: 1},
+                "gameweek_id": {0: 1},
+                "fixture_date": {0: pd.to_datetime("2024-08-16T19:00:00Z")},
+                "fixture_time": {0: pd.to_datetime("2024-08-16T19:00:00Z")},
+                "match_finished": {0: True},
+                "home_team_id": {0: 3},
+                "away_team_id": {0: 4},
+                "home_team_score": {0: 2},
+                "away_team_score": {0: 0},
+                "home_team_difficulty": {0: 1},
+                "away_team_difficulty": {0: 5},
+            }
+        )
+
+        expected_df["fixture_date"] = expected_df["fixture_date"].dt.date
+        expected_df["fixture_time"] = expected_df["fixture_time"].dt.time
+
+        output_df = transform_dim_fixtures("test")
+
+        pd.testing.assert_frame_equal(output_df, expected_df, check_dtype=False)
+
+    @patch("scripts.transform.retrieve_s3_json")
+    def test_handles_exceptions_correctly(self, mock_api_data):
+        mock_api_data.return_value = {
+            "elements": [{"team_code": 1, "id": 1}],
+            "test": [{"id": 1}],
+        }
+        with pytest.raises(KeyError, match="Missing required columns"):
+            transform_dim_fixtures("test")
