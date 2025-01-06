@@ -109,3 +109,34 @@ def transform_dim_players(bucket_name):
 
     except KeyError as e:
         raise KeyError(f"Missing required columns: {e}")
+
+
+def transform_dim_teams(bucket_name):
+    try:
+        current_timestamp = datetime.now().strftime("%Y-%m-%d")
+
+        # retrieve JSON files from S3 bucket
+        bootstrap_static_list = retrieve_s3_json(
+            bucket_name, f"{current_timestamp}/bootstrap-static.json"
+        )
+
+        # transform list into DataFrame
+        dim_teams_df = pd.DataFrame(bootstrap_static_list["teams"])
+
+        # rename columns
+        dim_teams_df.rename(
+            columns={
+                "code": "team_id",
+                "name": "team_name",
+                "short_name": "team_name_short",
+            },
+            inplace=True,
+        )
+
+        print(dim_teams_df[["team_id", "team_name", "team_name_short"]])
+
+        # return DataFrame
+        return dim_teams_df[["team_id", "team_name", "team_name_short"]]
+
+    except KeyError as e:
+        raise KeyError(f"Missing required columns: {e}")
