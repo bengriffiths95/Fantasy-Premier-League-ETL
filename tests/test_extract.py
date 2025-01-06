@@ -11,7 +11,6 @@ from scripts.extract import (
     extract_data,
     generate_endpoints,
     retrieve_data,
-    generate_filename,
     save_json_to_s3,
 )
 
@@ -76,14 +75,6 @@ class TestRetrieveData:
         with pytest.raises(Exception) as err:
             retrieve_data("test")
         assert str(err.value) == "404 Not Found"
-
-
-class TestGenerateFileName:
-    def test_function_returns_correct_filename(self):
-        endpoint = "test"
-        current_timestamp = datetime.now().strftime("%Y-%m-%d")
-        output = generate_filename(endpoint)
-        assert output == f"{current_timestamp}/{endpoint}.json"
 
 
 @mock_aws

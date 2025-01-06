@@ -2,7 +2,7 @@ import requests
 import json
 import boto3
 from botocore.exceptions import ClientError
-from datetime import datetime
+from scripts.helpers import generate_filename
 
 
 def extract_data(team_id, bucket_name):
@@ -10,7 +10,7 @@ def extract_data(team_id, bucket_name):
 
     for endpoint in endpoints_list:
         data = retrieve_data(endpoint)
-        filename = generate_filename(endpoint)
+        filename = f"{generate_filename(endpoint)}.json"
         save_json_to_s3(data, bucket_name, filename)
 
 
@@ -37,10 +37,6 @@ def retrieve_data(endpoint):
         return response.json()
     except requests.exceptions.HTTPError as http_err:
         print("Error:", http_err)
-
-
-def generate_filename(endpoint):
-    return f'{datetime.now().strftime("%Y-%m-%d")}/{endpoint}.json'
 
 
 def save_json_to_s3(body, bucket, filename):
