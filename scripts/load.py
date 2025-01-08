@@ -2,7 +2,21 @@ import io
 import pandas as pd
 import boto3
 from sqlalchemy import create_engine
+from scripts.helpers import generate_filename
 
+def load_data(rds_user, rds_password, rds_host, rds_port, bucket_name):
+
+    conn = create_db_conn(rds_user, rds_password, rds_host, rds_port)
+
+    tables = ["fact_players",
+              "dim_players",
+              "dim_teams",
+              "dim_fixtures"]
+
+    for table in tables:
+        file_path = f'{generate_filename(table)}.parquet'
+        df = retrieve_s3_parquet(bucket_name, file_path)
+        insert_df_into_db(df, conn, table)
 
 def retrieve_s3_parquet(bucket_name, file_name):
     try:
@@ -25,5 +39,9 @@ def create_db_conn(rds_user, rds_password, rds_host, rds_port):
         return engine
     except Exception as e:
         print(f'create_db_conn Error: ', {e})
+
+def insert_df_into_db(df, conn, table_name):
+    df.to_sql(name=table_name, con=conn, if_exists='replace')
+    conn.close()
 
 
