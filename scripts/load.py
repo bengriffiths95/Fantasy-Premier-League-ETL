@@ -17,10 +17,13 @@ def retrieve_s3_parquet(bucket_name, file_name):
         print(f"retrieve_s3_parquet Error: ", {e})
         raise
 
-def create_db_conn(rds_user, rds_password, rds_host, rds_port, database_name):
-    conn_str = f'mysql+mysqlconnector://{rds_user}:{rds_password}@{rds_host}:{rds_port}/{database_name}'
-    engine = create_engine(conn_str)
-    print(engine)
-    return engine
+def create_db_conn(rds_user, rds_password, rds_host, rds_port):
+    try:
+        conn_str = f'mysql+mysqlconnector://{rds_user}:{rds_password}@{rds_host}:{rds_port}'
+        engine = create_engine(conn_str)
+        print(engine)
+        return engine
+    except Exception as e:
+        print(f'create_db_conn Error: ', {e})
 
 
