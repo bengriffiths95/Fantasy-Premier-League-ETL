@@ -196,8 +196,10 @@ def transform_dim_fixtures(bucket_name):
             dim_fixtures_df["kickoff_time"]
         ).dt.time
 
-        # replace null values
-        dim_fixtures_df = dim_fixtures_df.fillna(0)
+        # address null values
+        dim_fixtures_df["home_team_score"] = dim_fixtures_df["home_team_score"].fillna(0)
+        dim_fixtures_df["away_team_score"] = dim_fixtures_df["away_team_score"].fillna(0)
+        dim_fixtures_df.dropna(inplace=True)
 
         # return DataFrame
         return dim_fixtures_df[
