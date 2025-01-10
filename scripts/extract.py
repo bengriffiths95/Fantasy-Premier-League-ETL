@@ -22,7 +22,7 @@ def generate_endpoints():
     gw_endpoints = ["event/{}/live"]
 
     endpoints_list = list(target_endpoints)
-    endpoints_list.extend(gw_endpoints[0].format(i) for i in range(38))
+    endpoints_list.extend(gw_endpoints[0].format(i) for i in range(1, 39))
     return endpoints_list
 
 
