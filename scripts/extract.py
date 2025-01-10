@@ -5,8 +5,8 @@ from botocore.exceptions import ClientError
 from scripts.helpers import generate_filename
 
 
-def extract_data(team_id, bucket_name):
-    endpoints_list = generate_endpoints(team_id)
+def extract_data(bucket_name):
+    endpoints_list = generate_endpoints()
 
     for endpoint in endpoints_list:
         data = retrieve_data(endpoint)
@@ -14,18 +14,15 @@ def extract_data(team_id, bucket_name):
         save_json_to_s3(data, bucket_name, filename)
 
 
-def generate_endpoints(team_id):
+def generate_endpoints():
     target_endpoints = [
         f"fixtures",
         f"bootstrap-static",
-        f"entry/{team_id}/history",
-        f"entry/{team_id}",
     ]
-    gw_endpoints = ["event/{}/live", "entry/{}/event/{}/picks"]
+    gw_endpoints = ["event/{}/live"]
 
     endpoints_list = list(target_endpoints)
-    endpoints_list.extend(gw_endpoints[0].format(i) for i in range(38))
-    endpoints_list.extend(gw_endpoints[1].format(team_id, i) for i in range(38))
+    endpoints_list.extend(gw_endpoints[0].format(i) for i in range(1, 39))
     return endpoints_list
 
 

@@ -34,7 +34,7 @@ class TestExtractData(unittest.TestCase):
         mock_generate_endpoints.return_value = ["test1", "test2"]
         mock_retrieve_data.return_value = [{"key": "value"}]
 
-        extract_data(12345, "test-bucket")
+        extract_data("test-bucket")
 
         s3 = boto3.client("s3", region_name="us-east-1")
         output = s3.list_objects_v2(Bucket="test-bucket")
@@ -44,16 +44,8 @@ class TestExtractData(unittest.TestCase):
 class TestGenerateEndpoints:
 
     def test_function_returns_list(self):
-        output = generate_endpoints(12345)
+        output = generate_endpoints()
         assert isinstance(output, list)
-
-    def test_function_returns_key_error_with_missing_env_variable(self):
-        with pytest.raises(TypeError) as err:
-            generate_endpoints()
-        assert (
-            str(err.value)
-            == "generate_endpoints() missing 1 required positional argument: 'team_id'"
-        )
 
 
 class TestRetrieveData:

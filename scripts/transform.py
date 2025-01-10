@@ -118,6 +118,10 @@ def transform_dim_players(bucket_name):
             columns={"id": "player_id", "team_code": "team_id"}, inplace=True
         )
 
+        # dim_players_df['first_name'] = dim_players_df['first_name'].astype(str)
+        # dim_players_df['second_name'] = dim_players_df['second_name'].astype(str)
+        # dim_players_df['web_name'] = dim_players_df['web_name'].astype(str)
+
         # return DataFrame
         return dim_players_df[
             ["first_name", "second_name", "web_name", "player_id", "team_id"]
@@ -191,6 +195,15 @@ def transform_dim_fixtures(bucket_name):
         dim_fixtures_df["fixture_time"] = pd.to_datetime(
             dim_fixtures_df["kickoff_time"]
         ).dt.time
+
+        # address null values
+        dim_fixtures_df["home_team_score"] = dim_fixtures_df["home_team_score"].fillna(
+            0
+        )
+        dim_fixtures_df["away_team_score"] = dim_fixtures_df["away_team_score"].fillna(
+            0
+        )
+        dim_fixtures_df.dropna(inplace=True)
 
         # return DataFrame
         return dim_fixtures_df[
