@@ -25,7 +25,7 @@ class TestTransformFunction(unittest.TestCase):
         mock_df_to_parquet.return_value = '{"paths": ["s3://test-bucket/2025-01-02 12:52:03/test.parquet"], "partitions_values": []}'
         mock_retrieve_json.side_effect = [
             {
-                "elements": [{"team_code": 1, "id": 1}],
+                "elements": [{"team": 1, "id": 1}],
                 "events": [{"id": 1}],
             },
             {
@@ -35,12 +35,12 @@ class TestTransformFunction(unittest.TestCase):
                         "second_name": "test_second",
                         "web_name": "test",
                         "id": 1,
-                        "team_code": 1,
+                        "team": 1,
                     }
                 ],
             },
             {
-                "teams": [{"code": 3, "name": "Arsenal", "short_name": "ARS"}],
+                "teams": [{"id": 3, "name": "Arsenal", "short_name": "ARS"}],
             },
             [
                 {
@@ -164,7 +164,7 @@ class TestTransformFactTable:
     @patch("scripts.transform.retrieve_s3_json")
     def test_returns_dataframe(self, mock_api_data):
         mock_api_data.return_value = {
-            "elements": [{"team_code": 1, "id": 1}],
+            "elements": [{"team": 1, "id": 1}],
             "events": [{"id": 1}],
         }
 
@@ -175,7 +175,7 @@ class TestTransformFactTable:
     @patch("scripts.transform.retrieve_s3_json")
     def test_formats_columns_correctly(self, mock_api_data):
         mock_api_data.return_value = {
-            "elements": [{"team_code": 1, "id": 1}],
+            "elements": [{"team": 1, "id": 1}],
             "events": [{"id": 1}],
         }
 
@@ -190,7 +190,7 @@ class TestTransformFactTable:
     @patch("scripts.transform.retrieve_s3_json")
     def test_handles_exceptions_correctly(self, mock_api_data):
         mock_api_data.return_value = {
-            "elements": [{"team_code": 1, "id": 1}],
+            "elements": [{"team": 1, "id": 1}],
             "test": [{"id": 1}],
         }
         with pytest.raises(KeyError, match="Missing required columns"):
@@ -207,7 +207,7 @@ class TestTransformDimPlayersTable:
                     "second_name": "test_second",
                     "web_name": "test",
                     "id": 1,
-                    "team_code": 1,
+                    "team": 1,
                 }
             ],
         }
@@ -229,7 +229,7 @@ class TestTransformDimPlayersTable:
     @patch("scripts.transform.retrieve_s3_json")
     def test_handles_exceptions_correctly(self, mock_api_data):
         mock_api_data.return_value = {
-            "elements": [{"team_code": 1, "id": 1}],
+            "elements": [{"team": 1, "id": 1}],
             "test": [{"id": 1}],
         }
         with pytest.raises(KeyError, match="Missing required columns"):
@@ -240,7 +240,7 @@ class TestTransformDimTeamsTable:
     @patch("scripts.transform.retrieve_s3_json")
     def test_formats_columns_correctly(self, mock_api_data):
         mock_api_data.return_value = {
-            "teams": [{"code": "3", "name": "Arsenal", "short_name": "ARS"}],
+            "teams": [{"id": "3", "name": "Arsenal", "short_name": "ARS"}],
         }
 
         expected_df = pd.DataFrame(
@@ -258,7 +258,7 @@ class TestTransformDimTeamsTable:
     @patch("scripts.transform.retrieve_s3_json")
     def test_handles_exceptions_correctly(self, mock_api_data):
         mock_api_data.return_value = {
-            "elements": [{"team_code": 1, "id": 1}],
+            "elements": [{"team": 1, "id": 1}],
             "test": [{"id": 1}],
         }
         with pytest.raises(KeyError, match="Missing required columns"):
@@ -309,7 +309,7 @@ class TestTransformDimFixturesTable:
     @patch("scripts.transform.retrieve_s3_json")
     def test_handles_exceptions_correctly(self, mock_api_data):
         mock_api_data.return_value = {
-            "elements": [{"team_code": 1, "id": 1}],
+            "elements": [{"team": 1, "id": 1}],
             "test": [{"id": 1}],
         }
         with pytest.raises(KeyError, match="Missing required columns"):

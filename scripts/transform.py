@@ -88,8 +88,8 @@ def transform_fact_players(bucket_name):
 
         # create temp DataFrames with required columns
         temp_gw_df = bs_events_df[["id"]].rename(columns={"id": "gameweek_id"})
-        temp_bs_df = bs_elements_df[["id", "team_code"]].rename(
-            columns={"id": "player_id", "team_code": "team_id"}
+        temp_bs_df = bs_elements_df[["id", "team"]].rename(
+            columns={"id": "player_id", "team": "team_id"}
         )
 
         # merge temp DataFrames
@@ -115,12 +115,8 @@ def transform_dim_players(bucket_name):
 
         # rename columns
         dim_players_df.rename(
-            columns={"id": "player_id", "team_code": "team_id"}, inplace=True
+            columns={"id": "player_id", "team": "team_id"}, inplace=True
         )
-
-        # dim_players_df['first_name'] = dim_players_df['first_name'].astype(str)
-        # dim_players_df['second_name'] = dim_players_df['second_name'].astype(str)
-        # dim_players_df['web_name'] = dim_players_df['web_name'].astype(str)
 
         # return DataFrame
         return dim_players_df[
@@ -146,7 +142,7 @@ def transform_dim_teams(bucket_name):
         # rename columns
         dim_teams_df.rename(
             columns={
-                "code": "team_id",
+                "id": "team_id",
                 "name": "team_name",
                 "short_name": "team_name_short",
             },
