@@ -81,19 +81,71 @@ def transform_fact_players(bucket_name):
         bootstrap_static_list = retrieve_s3_json(
             bucket_name, f"{current_timestamp}/bootstrap-static.json"
         )
+        fixtures_list = retrieve_s3_json(
+            bucket_name, f"{current_timestamp}/fixtures.json"
+        )
 
         # transform lists into DataFrames
         bs_elements_df = pd.DataFrame(bootstrap_static_list["elements"])
         bs_events_df = pd.DataFrame(bootstrap_static_list["events"])
+        fixtures_df = pd.DataFrame(fixtures_list)
 
         # create temp DataFrames with required columns
         temp_gw_df = bs_events_df[["id"]].rename(columns={"id": "gameweek_id"})
         temp_bs_df = bs_elements_df[["id", "team"]].rename(
             columns={"id": "player_id", "team": "team_id"}
         )
+        # Create DataFrames for Home and Away fixtures & concatenate them
+        home_fixtures = fixtures_df.rename(
+            columns={
+                "team_h": "team_id",
+                "team_a": "opposition_team_id",
+                "team_h_difficulty": "fixture_difficulty_rating",
+                "event": "gameweek_id",
+                "id": "fixture_id",
+            }
+        )
+        home_fixtures["is_home"] = True
+
+        away_fixtures = fixtures_df.rename(
+            columns={
+                "team_a": "team_id",
+                "team_h": "opposition_team_id",
+                "team_a_difficulty": "fixture_difficulty_rating",
+                "event": "gameweek_id",
+                "id": "fixture_id",
+            }
+        )
+        away_fixtures["is_home"] = False
+
+        temp_all_fixtures_df = pd.concat(
+            [home_fixtures, away_fixtures], ignore_index=True
+        )
 
         # merge temp DataFrames
-        fact_players_df = pd.merge(temp_bs_df, temp_gw_df, how="cross")
+        temp_players_df = pd.merge(temp_bs_df, temp_gw_df, how="cross")
+        fact_players_df = pd.merge(
+            temp_players_df,
+            temp_all_fixtures_df,
+            on=["team_id", "gameweek_id"],
+            how="left",
+        )
+
+        # select specific columns
+        fact_players_df = fact_players_df[
+            [
+                "player_id",
+                "team_id",
+                "gameweek_id",
+                "fixture_id",
+                "opposition_team_id",
+                "fixture_difficulty_rating",
+                "is_home",
+            ]
+        ]
+
+        # drop n/a values
+        fact_players_df.dropna(inplace=True)
 
         return fact_players_df
 

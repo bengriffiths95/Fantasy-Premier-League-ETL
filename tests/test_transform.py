@@ -1,6 +1,7 @@
 import os
 import unittest
 from unittest.mock import patch
+from datetime import datetime
 import pytest
 from moto import mock_aws
 import boto3
@@ -21,42 +22,49 @@ class TestTransformFunction(unittest.TestCase):
     @patch("scripts.transform.retrieve_s3_json")
     @patch("scripts.transform.wr.s3.to_parquet")
     def test_transform_function(self, mock_df_to_parquet, mock_retrieve_json):
+        current_date = datetime.now().strftime("%Y-%m-%d")
+
         # mock aws wrangler and extracted data lists
         mock_df_to_parquet.return_value = '{"paths": ["s3://test-bucket/2025-01-02 12:52:03/test.parquet"], "partitions_values": []}'
-        mock_retrieve_json.side_effect = [
-            {
-                "elements": [{"team": 1, "id": 1}],
-                "events": [{"id": 1}],
-            },
-            {
+        mock_retrieve_json.side_effect = lambda bucket, key: {
+            f"{current_date}/bootstrap-static.json": {
                 "elements": [
                     {
-                        "first_name": "test_first",
-                        "second_name": "test_second",
-                        "web_name": "test",
                         "id": 1,
-                        "team": 1,
-                    }
+                        "team": 10,
+                        "first_name": "John",
+                        "second_name": "Doe",
+                        "web_name": "JD",
+                    },
+                    {
+                        "id": 2,
+                        "team": 20,
+                        "first_name": "Jane",
+                        "second_name": "Smith",
+                        "web_name": "JS",
+                    },
+                ],
+                "events": [{"id": 1}, {"id": 2}],
+                "teams": [
+                    {"id": 10, "name": "Team A", "short_name": "TA"},
+                    {"id": 20, "name": "Team B", "short_name": "TB"},
                 ],
             },
-            {
-                "teams": [{"id": 3, "name": "Arsenal", "short_name": "ARS"}],
-            },
-            [
+            f"{current_date}/fixtures.json": [
                 {
-                    "id": 1,
+                    "id": 100,
                     "event": 1,
+                    "team_h": 10,
+                    "team_a": 20,
+                    "team_h_difficulty": 3,
+                    "team_a_difficulty": 2,
+                    "kickoff_time": "2025-01-14T15:00:00Z",
                     "finished": True,
-                    "kickoff_time": "2024-08-16T19:00:00Z",
-                    "team_h": 3,
-                    "team_a": 4,
                     "team_h_score": 2,
-                    "team_a_score": 0,
-                    "team_h_difficulty": 1,
-                    "team_a_difficulty": 5,
+                    "team_a_score": 1,
                 }
             ],
-        ]
+        }[key]
 
         # invoke function
         transform_data("test_bucket_1", "test_bucket_2")
@@ -163,10 +171,26 @@ class TestDfToParquetToS3(unittest.TestCase):
 class TestTransformFactTable:
     @patch("scripts.transform.retrieve_s3_json")
     def test_returns_dataframe(self, mock_api_data):
-        mock_api_data.return_value = {
-            "elements": [{"team": 1, "id": 1}],
-            "events": [{"id": 1}],
-        }
+        mock_api_data.side_effect = [
+            {
+                "elements": [{"team": 1, "id": 1}],
+                "events": [{"id": 1}],
+            },
+            [
+                {
+                    "id": 1,
+                    "event": 1,
+                    "finished": True,
+                    "kickoff_time": "2024-08-16T19:00:00Z",
+                    "team_h": 3,
+                    "team_a": 4,
+                    "team_h_score": 2,
+                    "team_a_score": 0,
+                    "team_h_difficulty": 1,
+                    "team_a_difficulty": 5,
+                }
+            ],
+        ]
 
         output_df = transform_fact_players("test")
 
@@ -174,16 +198,42 @@ class TestTransformFactTable:
 
     @patch("scripts.transform.retrieve_s3_json")
     def test_formats_columns_correctly(self, mock_api_data):
-        mock_api_data.return_value = {
-            "elements": [{"team": 1, "id": 1}],
-            "events": [{"id": 1}],
-        }
+        mock_api_data.side_effect = [
+            {
+                "elements": [{"team": 3, "id": 1}],
+                "events": [{"id": 1}],
+            },
+            [
+                {
+                    "id": 1,
+                    "event": 1,
+                    "finished": True,
+                    "kickoff_time": "2024-08-16T19:00:00Z",
+                    "team_h": 3,
+                    "team_a": 4,
+                    "team_h_score": 2,
+                    "team_a_score": 0,
+                    "team_h_difficulty": 1,
+                    "team_a_difficulty": 5,
+                }
+            ],
+        ]
 
         expected_df = pd.DataFrame(
-            {"player_id": {0: 1}, "team_id": {0: 1}, "gameweek_id": {0: 1}}
+            {
+                "player_id": {0: 1},
+                "team_id": {0: 3},
+                "gameweek_id": {0: 1},
+                "fixture_id": {0: 1},
+                "opposition_team_id": {0: 4},
+                "fixture_difficulty_rating": {0: 1},
+                "is_home": {0: True},
+            }
         )
 
         output_df = transform_fact_players("test")
+        print(output_df)
+        print(expected_df)
 
         pd.testing.assert_frame_equal(output_df, expected_df)
 
