@@ -2,6 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 from datetime import datetime
+import logging
 import pytest
 from moto import mock_aws
 import boto3
@@ -140,6 +141,10 @@ test_df = pd.DataFrame(
 
 
 class TestDfToParquetToS3(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def inject_caplog_fixture(self, caplog):
+        self._caplog = caplog
+
     @patch("scripts.transform.wr.s3.to_parquet")
     def test_function_uploads_file_to_s3_bucket(self, mock_df_to_parquet):
         # mock aws wrangler
@@ -152,10 +157,8 @@ class TestDfToParquetToS3(unittest.TestCase):
         mock_df_to_parquet.assert_called_once()
 
     @patch("scripts.transform.wr.s3.to_parquet")
-    @patch("builtins.print")
-    def test_function_raises_exception_for_invalid_bucket(
-        self, mock_print, mock_to_parquet
-    ):
+    def test_function_raises_exception_for_invalid_bucket(self, mock_to_parquet):
+        self._caplog.set_level(logging.ERROR)
         # mock exception
         mock_to_parquet.side_effect = Exception("NoSuchBucket")
 
@@ -163,8 +166,9 @@ class TestDfToParquetToS3(unittest.TestCase):
         save_df_to_parquet_s3("test_table", test_df, "test_bucket")
 
         # assertion
-        mock_print.assert_any_call(
+        assert (
             "save_df_to_parquet_s3 Error processing test_table: NoSuchBucket"
+            in self._caplog.text
         )
 
 

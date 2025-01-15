@@ -1,8 +1,11 @@
 import requests
 import json
+import logging
 import boto3
 from botocore.exceptions import ClientError
 from scripts.helpers import generate_filename
+
+logging.basicConfig(level=logging.INFO)
 
 
 def extract_data(bucket_name):
@@ -29,18 +32,20 @@ def generate_endpoints():
 def retrieve_data(endpoint):
     try:
         base_url = "https://fantasy.premierleague.com/api/"
-        response = requests.get(base_url + endpoint + "/", timeout=5)
+        response = requests.get(f"{base_url}{endpoint}/", timeout=5)
         response.raise_for_status()
+        logging.info(f"{endpoint} data retrieved successfully")
         return response.json()
     except requests.exceptions.HTTPError as http_err:
-        print("Error:", http_err)
+        logging.error(f"retrieve_data HTTP Error for {endpoint}: {http_err}")
+        raise
 
 
 def save_json_to_s3(body, bucket, filename):
     try:
         s3 = boto3.client("s3")
         s3.put_object(Body=json.dumps(body), Bucket=bucket, Key=filename)
-        return f"Success: {filename} added to bucket {bucket}"
+        logging.info(f"Success: {filename} added to bucket {bucket}")
     except ClientError as e:
-        print("Error: ", e)
+        logging.error(f"save_json_to_s3 Error for {filename}: {e}")
         raise
