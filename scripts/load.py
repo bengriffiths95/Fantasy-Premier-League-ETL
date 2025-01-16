@@ -57,7 +57,7 @@ def insert_df_into_db(df, engine, table_name):
         conn.commit()
         print(f"{table_name} updated!")
     except Exception as e:
-        print(f"insert_df_into_db Error: ", {e})
+        print(f"insert_df_into_db Error, Table {table_name}: ", {e})
     finally:
         conn.close()
 
@@ -68,7 +68,7 @@ def seed_db(engine):
             f"DROP TABLE IF EXISTS fact_players, dim_players, dim_teams, dim_fixtures"
         )
         conn.execute(
-            f"CREATE TABLE fact_players ( player_id int, team_id int, gameweek_id int )"
+            f"CREATE TABLE fact_players ( player_id int, team_id int, gameweek_id int, fixture_id int, opposition_team_id int, fixture_difficulty_rating int, is_home bool )"
         )
         conn.execute(
             f"CREATE TABLE dim_players ( first_name varchar(255), second_name varchar(255), web_name varchar(255), player_id int, team_id int )"

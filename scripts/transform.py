@@ -1,27 +1,27 @@
 import json
 from datetime import datetime
+import logging
 import boto3
 import awswrangler as wr
 import pandas as pd
 from scripts.helpers import generate_filename
 
+logging.basicConfig(level=logging.INFO)
+
 
 def transform_data(source_bucket, destination_bucket):
-    try:
-        save_df_to_parquet_s3(
-            "fact_players", transform_fact_players(source_bucket), destination_bucket
-        )
-        save_df_to_parquet_s3(
-            "dim_players", transform_dim_players(source_bucket), destination_bucket
-        )
-        save_df_to_parquet_s3(
-            "dim_teams", transform_dim_teams(source_bucket), destination_bucket
-        )
-        save_df_to_parquet_s3(
-            "dim_fixtures", transform_dim_fixtures(source_bucket), destination_bucket
-        )
-    except Exception as e:
-        print(e)
+    save_df_to_parquet_s3(
+        "fact_players", transform_fact_players(source_bucket), destination_bucket
+    )
+    save_df_to_parquet_s3(
+        "dim_players", transform_dim_players(source_bucket), destination_bucket
+    )
+    save_df_to_parquet_s3(
+        "dim_teams", transform_dim_teams(source_bucket), destination_bucket
+    )
+    save_df_to_parquet_s3(
+        "dim_fixtures", transform_dim_fixtures(source_bucket), destination_bucket
+    )
 
 
 def retrieve_s3_json(bucket_name, file_name):
@@ -32,9 +32,10 @@ def retrieve_s3_json(bucket_name, file_name):
             Key=file_name,
         )
         response = json.loads(response["Body"].read().decode("utf-8"))
+        logging.info(f"{file_name} retrieved successfully")
         return response
     except Exception as e:
-        print("retrieve_s3_json Error: ", e)
+        logging.error(f"retrieve_s3_json Error: {e}")
         raise
 
 
@@ -68,9 +69,9 @@ def save_df_to_parquet_s3(table_name, table_df, destination_bucket):
         # convert the DataFrame to parquet and save to path in s3 bucket
         output = wr.s3.to_parquet(table_df, path)
 
-        print("Added to bucket: ", output)
+        logging.info(f"Added to bucket: {output}")
     except Exception as e:
-        print(f"save_df_to_parquet_s3 Error processing {table_name}: {e}")
+        logging.error(f"save_df_to_parquet_s3 Error processing {table_name}: {e}")
 
 
 def transform_fact_players(bucket_name):
@@ -81,23 +82,77 @@ def transform_fact_players(bucket_name):
         bootstrap_static_list = retrieve_s3_json(
             bucket_name, f"{current_timestamp}/bootstrap-static.json"
         )
+        fixtures_list = retrieve_s3_json(
+            bucket_name, f"{current_timestamp}/fixtures.json"
+        )
 
         # transform lists into DataFrames
         bs_elements_df = pd.DataFrame(bootstrap_static_list["elements"])
         bs_events_df = pd.DataFrame(bootstrap_static_list["events"])
+        fixtures_df = pd.DataFrame(fixtures_list)
 
         # create temp DataFrames with required columns
         temp_gw_df = bs_events_df[["id"]].rename(columns={"id": "gameweek_id"})
-        temp_bs_df = bs_elements_df[["id", "team_code"]].rename(
-            columns={"id": "player_id", "team_code": "team_id"}
+        temp_bs_df = bs_elements_df[["id", "team"]].rename(
+            columns={"id": "player_id", "team": "team_id"}
+        )
+        # Create DataFrames for Home and Away fixtures & concatenate them
+        home_fixtures = fixtures_df.rename(
+            columns={
+                "team_h": "team_id",
+                "team_a": "opposition_team_id",
+                "team_h_difficulty": "fixture_difficulty_rating",
+                "event": "gameweek_id",
+                "id": "fixture_id",
+            }
+        )
+        home_fixtures["is_home"] = True
+
+        away_fixtures = fixtures_df.rename(
+            columns={
+                "team_a": "team_id",
+                "team_h": "opposition_team_id",
+                "team_a_difficulty": "fixture_difficulty_rating",
+                "event": "gameweek_id",
+                "id": "fixture_id",
+            }
+        )
+        away_fixtures["is_home"] = False
+
+        temp_all_fixtures_df = pd.concat(
+            [home_fixtures, away_fixtures], ignore_index=True
         )
 
         # merge temp DataFrames
-        fact_players_df = pd.merge(temp_bs_df, temp_gw_df, how="cross")
+        temp_players_df = pd.merge(temp_bs_df, temp_gw_df, how="cross")
+        fact_players_df = pd.merge(
+            temp_players_df,
+            temp_all_fixtures_df,
+            on=["team_id", "gameweek_id"],
+            how="left",
+        )
 
+        # select specific columns
+        fact_players_df = fact_players_df[
+            [
+                "player_id",
+                "team_id",
+                "gameweek_id",
+                "fixture_id",
+                "opposition_team_id",
+                "fixture_difficulty_rating",
+                "is_home",
+            ]
+        ]
+
+        # drop n/a values
+        fact_players_df.dropna(inplace=True)
+
+        logging.info("transform_fact_players transformed successfully")
         return fact_players_df
 
     except KeyError as e:
+        logging.error(f"{e}")
         raise KeyError(f"transform_fact_players Missing required columns: {e}")
 
 
@@ -115,19 +170,17 @@ def transform_dim_players(bucket_name):
 
         # rename columns
         dim_players_df.rename(
-            columns={"id": "player_id", "team_code": "team_id"}, inplace=True
+            columns={"id": "player_id", "team": "team_id"}, inplace=True
         )
 
-        # dim_players_df['first_name'] = dim_players_df['first_name'].astype(str)
-        # dim_players_df['second_name'] = dim_players_df['second_name'].astype(str)
-        # dim_players_df['web_name'] = dim_players_df['web_name'].astype(str)
-
         # return DataFrame
+        logging.info("transform_dim_players transformed successfully")
         return dim_players_df[
             ["first_name", "second_name", "web_name", "player_id", "team_id"]
         ]
 
     except KeyError as e:
+        logging.error(f"{e}")
         raise KeyError(f"transform_dim_players Missing required columns: {e}")
 
 
@@ -146,7 +199,7 @@ def transform_dim_teams(bucket_name):
         # rename columns
         dim_teams_df.rename(
             columns={
-                "code": "team_id",
+                "id": "team_id",
                 "name": "team_name",
                 "short_name": "team_name_short",
             },
@@ -154,9 +207,11 @@ def transform_dim_teams(bucket_name):
         )
 
         # return DataFrame
+        logging.info("transform_dim_teams transformed successfully")
         return dim_teams_df[["team_id", "team_name", "team_name_short"]]
 
     except KeyError as e:
+        logging.error(f"{e}")
         raise KeyError(f"transform_dim_teams Missing required columns: {e}")
 
 
@@ -206,6 +261,7 @@ def transform_dim_fixtures(bucket_name):
         dim_fixtures_df.dropna(inplace=True)
 
         # return DataFrame
+        logging.info("transform_dim_fixtures transformed successfully")
         return dim_fixtures_df[
             [
                 "fixture_id",
@@ -223,4 +279,5 @@ def transform_dim_fixtures(bucket_name):
         ]
 
     except KeyError as e:
+        logging.error(f"{e}")
         raise KeyError(f"transform_dim_fixtures Missing required columns: {e}")

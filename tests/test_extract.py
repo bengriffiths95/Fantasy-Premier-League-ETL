@@ -1,6 +1,8 @@
 import os
 import unittest
 from unittest.mock import patch
+from requests.exceptions import HTTPError
+import logging
 import responses
 import pytest
 from moto import mock_aws
@@ -62,15 +64,24 @@ class TestRetrieveData:
     def test_failed_request(self):
         responses.get(
             "https://fantasy.premierleague.com/api/test/",
-            body=Exception("404 Not Found"),
+            json={"detail": "Exception: 404 Not Found"},
+            status=404,
         )
-        with pytest.raises(Exception) as err:
+        with pytest.raises(HTTPError) as err:
             retrieve_data("test")
-        assert str(err.value) == "404 Not Found"
+
+        assert (
+            str(err.value)
+            == "404 Client Error: Not Found for url: https://fantasy.premierleague.com/api/test/"
+        )
 
 
 @mock_aws
 class TestSaveJsonToS3(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def inject_caplog_fixture(self, caplog):
+        self._caplog = caplog
+
     def setUp(self):
         """Mocked AWS Credentials for moto and test bucket"""
         os.environ["AWS_ACCESS_KEY_ID"] = "testing"
@@ -91,10 +102,11 @@ class TestSaveJsonToS3(unittest.TestCase):
         assert output["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     def test_successful_request_returns_success_msg(self):
+        self._caplog.set_level(logging.INFO)
         s3 = boto3.client("s3", region_name="us-east-1")
         test_body = [{"Key": "Value"}]
-        output = save_json_to_s3(test_body, "test-bucket", "test-filename")
-        assert output == "Success: test-filename added to bucket test-bucket"
+        save_json_to_s3(test_body, "test-bucket", "test-filename")
+        assert "Success: test-filename added to bucket test-bucket" in self._caplog.text
 
     def test_successful_request_saves_file_in_json_format(self):
         s3 = boto3.client("s3", region_name="us-east-1")
