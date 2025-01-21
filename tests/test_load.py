@@ -9,7 +9,7 @@ from moto import mock_aws
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from scripts.load import retrieve_s3_parquet
+from airflow_home.dags.scripts.load import retrieve_s3_parquet
 
 
 @mock_aws
@@ -25,7 +25,7 @@ class TestRetrieveS3Parquet(unittest.TestCase):
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="test-bucket")
 
-    @patch("scripts.load.boto3.client")
+    @patch("airflow_home.dags.scripts.load.boto3.client")
     def test_function_returns_DataFrame(self, mock_boto3_client):
         example_df = pd.DataFrame({"test1": [1, 2], "test2": [1, 2]})
 

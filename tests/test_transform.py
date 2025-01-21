@@ -8,7 +8,7 @@ from moto import mock_aws
 import boto3
 from botocore.exceptions import ClientError
 import pandas as pd
-from scripts.transform import (
+from airflow_home.dags.scripts.transform import (
     retrieve_s3_json,
     save_df_to_parquet_s3,
     transform_fact_players,
@@ -20,8 +20,8 @@ from scripts.transform import (
 
 
 class TestTransformFunction(unittest.TestCase):
-    @patch("scripts.transform.retrieve_s3_json")
-    @patch("scripts.transform.wr.s3.to_parquet")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.wr.s3.to_parquet")
     def test_transform_function(self, mock_df_to_parquet, mock_retrieve_json):
         current_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -145,7 +145,7 @@ class TestDfToParquetToS3(unittest.TestCase):
     def inject_caplog_fixture(self, caplog):
         self._caplog = caplog
 
-    @patch("scripts.transform.wr.s3.to_parquet")
+    @patch("airflow_home.dags.scripts.transform.wr.s3.to_parquet")
     def test_function_uploads_file_to_s3_bucket(self, mock_df_to_parquet):
         # mock aws wrangler
         mock_df_to_parquet.return_value = '{"paths": ["s3://test-bucket/2025-01-02 12:52:03/test.parquet"], "partitions_values": []}'
@@ -156,7 +156,7 @@ class TestDfToParquetToS3(unittest.TestCase):
         # check mock was called correctly
         mock_df_to_parquet.assert_called_once()
 
-    @patch("scripts.transform.wr.s3.to_parquet")
+    @patch("airflow_home.dags.scripts.transform.wr.s3.to_parquet")
     def test_function_raises_exception_for_invalid_bucket(self, mock_to_parquet):
         self._caplog.set_level(logging.ERROR)
         # mock exception
@@ -173,7 +173,7 @@ class TestDfToParquetToS3(unittest.TestCase):
 
 
 class TestTransformFactTable:
-    @patch("scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
     def test_returns_dataframe(self, mock_api_data):
         mock_api_data.side_effect = [
             {
@@ -200,7 +200,7 @@ class TestTransformFactTable:
 
         assert isinstance(output_df, pd.DataFrame)
 
-    @patch("scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
     def test_formats_columns_correctly(self, mock_api_data):
         mock_api_data.side_effect = [
             {
@@ -241,7 +241,7 @@ class TestTransformFactTable:
 
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    @patch("scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
     def test_handles_exceptions_correctly(self, mock_api_data):
         mock_api_data.return_value = {
             "elements": [{"team": 1, "id": 1}],
@@ -252,7 +252,7 @@ class TestTransformFactTable:
 
 
 class TestTransformDimPlayersTable:
-    @patch("scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
     def test_formats_columns_correctly(self, mock_api_data):
         mock_api_data.return_value = {
             "elements": [
@@ -280,7 +280,7 @@ class TestTransformDimPlayersTable:
 
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    @patch("scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
     def test_handles_exceptions_correctly(self, mock_api_data):
         mock_api_data.return_value = {
             "elements": [{"team": 1, "id": 1}],
@@ -291,7 +291,7 @@ class TestTransformDimPlayersTable:
 
 
 class TestTransformDimTeamsTable:
-    @patch("scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
     def test_formats_columns_correctly(self, mock_api_data):
         mock_api_data.return_value = {
             "teams": [{"id": "3", "name": "Arsenal", "short_name": "ARS"}],
@@ -309,7 +309,7 @@ class TestTransformDimTeamsTable:
 
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    @patch("scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
     def test_handles_exceptions_correctly(self, mock_api_data):
         mock_api_data.return_value = {
             "elements": [{"team": 1, "id": 1}],
@@ -320,7 +320,7 @@ class TestTransformDimTeamsTable:
 
 
 class TestTransformDimFixturesTable:
-    @patch("scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
     def test_formats_columns_correctly(self, mock_api_data):
         mock_api_data.return_value = [
             {
@@ -360,7 +360,7 @@ class TestTransformDimFixturesTable:
 
         pd.testing.assert_frame_equal(output_df, expected_df, check_dtype=False)
 
-    @patch("scripts.transform.retrieve_s3_json")
+    @patch("airflow_home.dags.scripts.transform.retrieve_s3_json")
     def test_handles_exceptions_correctly(self, mock_api_data):
         mock_api_data.return_value = {
             "elements": [{"team": 1, "id": 1}],
