@@ -1,5 +1,5 @@
 from datetime import datetime
-from scripts.helpers import generate_filename
+from airflow_home.dags.scripts.helpers import generate_filename
 
 
 class TestGenerateFileName:

@@ -16,11 +16,10 @@ def seed_prod_db(engine):
             f"CREATE TABLE dim_fixtures ( fixture_id int, gameweek_id int, fixture_date DATE, fixture_time TIME, match_finished bool, home_team_id int, away_team_id int, home_team_score int, away_team_score int, home_team_difficulty int, away_team_difficulty int )"
         )
 
+
 def seed_test_db(engine):
     with engine.connect() as conn:
-        conn.execute(
-            f"DROP TABLE IF EXISTS test_table"
-        )
+        conn.execute(f"DROP TABLE IF EXISTS test_table")
         conn.execute(
             f"CREATE TABLE test_table ( player_id int, team_id int, gameweek_id int, fixture_id int, opposition_team_id int, fixture_difficulty_rating int, is_home bool )"
         )

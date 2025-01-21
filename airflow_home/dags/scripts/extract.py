@@ -3,7 +3,11 @@ import json
 import logging
 import boto3
 from botocore.exceptions import ClientError
-from scripts.helpers import generate_filename
+
+try:
+    from scripts.helpers import generate_filename
+except ImportError:
+    from airflow_home.dags.scripts.helpers import generate_filename
 
 logging.basicConfig(level=logging.INFO)
 

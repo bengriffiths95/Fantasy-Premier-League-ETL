@@ -2,7 +2,11 @@ import io
 import pandas as pd
 import boto3
 from sqlalchemy import create_engine
-from scripts.helpers import generate_filename
+
+try:
+    from scripts.helpers import generate_filename
+except ImportError:
+    from airflow_home.dags.scripts.helpers import generate_filename
 
 
 def load_data(rds_user, rds_password, rds_host, rds_port, rds_db_name, bucket_name):
