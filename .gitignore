@@ -35,6 +35,8 @@ MANIFEST
 # Other
 *coverage
 testing.py
+ec2_start.zip
+ec2_stop.zip
 
 # Terraform
 **/.terraform/*
