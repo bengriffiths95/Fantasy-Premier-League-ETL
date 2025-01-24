@@ -10,6 +10,7 @@ FPL provide an open API - https://fantasy.premierleague.com/api/ - with endpoint
 This project extracts player and fixture data from the API, transforms into a Star schema design and loads into a MySQL database for visualisation with Apache Superset (all using AWS infrastructure - S3, EC2 and RDS)
 
 ## Pipeline Architecture
+![Architecture Diagram](https://raw.githubusercontent.com/bengriffiths95/Fantasy-Premier-League-ETL/refs/heads/main/Architecture%20Diagram.png)
 
 ### Extraction
 
