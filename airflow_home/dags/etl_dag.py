@@ -12,7 +12,7 @@ with DAG(
     "etl_dag",
     start_date=datetime(2025, 1, 21),
     description="DAG to orchestrate ETL process",
-    schedule="@daily",
+    schedule="5 8 * * *",
     catchup=False,
 ):
 
