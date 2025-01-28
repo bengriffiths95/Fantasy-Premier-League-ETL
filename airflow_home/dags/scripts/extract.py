@@ -13,6 +13,18 @@ logging.basicConfig(level=logging.INFO)
 
 
 def extract_data(bucket_name):
+    """
+    Executes full Extract process, invoking generate_endpoints, retrieve_data and save_json_to_s3 functions
+
+    Parameters:
+        bucket_name (str): Name of the target S3 bucket
+
+    Returns:
+        Nothing
+
+    Side Effects:
+        On success - data fetched from API for each endpoint & saved to S3 bucket
+    """
     endpoints_list = generate_endpoints()
 
     for endpoint in endpoints_list:
@@ -22,6 +34,15 @@ def extract_data(bucket_name):
 
 
 def generate_endpoints():
+    """
+    Generate a list of FPL API endpoints
+
+    Parameters:
+        None
+
+    Returns:
+        list: List of FPL API Endpoints
+    """
     target_endpoints = [
         f"fixtures",
         f"bootstrap-static",
@@ -34,6 +55,18 @@ def generate_endpoints():
 
 
 def retrieve_data(endpoint):
+    """
+    Retrieves data from Fantasy Premier League API, from the endpoint provided
+
+    Parameters:
+        endpoint (str): The desired FPL API endpoint
+
+    Returns:
+        dict: The returned data from the API
+
+    Side Effects:
+        On failure - error message logged
+    """
     try:
         base_url = "https://fantasy.premierleague.com/api/"
         response = requests.get(f"{base_url}{endpoint}/", timeout=5)
@@ -46,6 +79,21 @@ def retrieve_data(endpoint):
 
 
 def save_json_to_s3(body, bucket, filename):
+    """
+    Saves a dictionary as JSON to the requested AWS S3 bucket
+
+    Parameters:
+        body (dict): The data to be saved
+        bucket (str): Name of the desired S3 bucket
+        filename (str): The desired key for the file in S3
+
+    Returns:
+        dict: Success message logged
+
+    Side Effects:
+        On success - file uploaded to S3 bucket
+        On failure - error message logged
+    """
     try:
         s3 = boto3.client("s3")
         s3.put_object(Body=json.dumps(body), Bucket=bucket, Key=filename)

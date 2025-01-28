@@ -1,4 +1,16 @@
 def seed_prod_db(engine):
+    """
+    Create tables in production MySQL Database
+
+    Parameters:
+        engine (str): SQLAlchemy connection object
+
+    Returns:
+        Nothing
+
+    Side Effects:
+        On success - SQL tables are dropped if they already exist, and then created
+    """
     with engine.connect() as conn:
         conn.execute(
             f"DROP TABLE IF EXISTS fact_players, dim_players, dim_teams, dim_fixtures"
@@ -18,6 +30,18 @@ def seed_prod_db(engine):
 
 
 def seed_test_db(engine):
+    """
+    Create tables in testing MySQL Database
+
+    Parameters:
+        engine (str): SQLAlchemy connection object
+
+    Returns:
+        Nothing
+
+    Side Effects:
+        On success - SQL tables are dropped if they already exist, and then created
+    """
     with engine.connect() as conn:
         conn.execute(f"DROP TABLE IF EXISTS test_table")
         conn.execute(
