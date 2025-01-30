@@ -10,7 +10,7 @@ try:
 except ImportError:
     from airflow_home.dags.scripts.helpers import generate_filename
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename='logs.log', encoding='utf-8', level=logging.INFO)
 
 
 def transform_data(source_bucket, destination_bucket):
