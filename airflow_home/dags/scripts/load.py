@@ -1,4 +1,5 @@
 import io
+import logging
 import pandas as pd
 import boto3
 from sqlalchemy import create_engine
@@ -7,6 +8,8 @@ try:
     from scripts.helpers import generate_filename
 except ImportError:
     from airflow_home.dags.scripts.helpers import generate_filename
+
+logging.basicConfig(filename="logs.log", encoding="utf-8", level=logging.INFO)
 
 
 def load_data(rds_user, rds_password, rds_host, rds_port, rds_db_name, bucket_name):
@@ -58,9 +61,10 @@ def retrieve_s3_parquet(bucket_name, file_name):
             Key=file_name,
         )
         df = pd.read_parquet(io.BytesIO(response["Body"].read()))
+        logging.info(f"retrieve_s3_parquet: {file_name} retrieved successfully")
         return df
     except Exception as e:
-        print(f"retrieve_s3_parquet Error: ", {e})
+        logging.error(f"retrieve_s3_parquet Error: {e}")
         raise
 
 
@@ -86,9 +90,10 @@ def create_db_conn(rds_user, rds_password, rds_host, rds_port, rds_db_name):
         engine = create_engine(conn_str)
         with engine.connect() as conn:
             print("Database connection successful!")
+        logging.info(f"create_db_conn: DB Connection Engine created successfully")
         return engine
     except Exception as e:
-        print(f"create_db_conn Error: ", {e})
+        logging.error(f"create_db_conn Error: , {e}")
 
 
 def insert_df_into_db(df, engine, table_name):
@@ -119,8 +124,8 @@ def insert_df_into_db(df, engine, table_name):
         cursor.execute(f"TRUNCATE TABLE {table_name};")
         cursor.executemany(sql, values_list)
         conn.commit()
-        print(f"{table_name} updated!")
+        logging.info(f"insert_df_into_db: {table_name} updated!")
     except Exception as e:
-        print(f"insert_df_into_db Error, Table {table_name}: ", {e})
+        logging.error(f"insert_df_into_db Error, Table {table_name}: {e}")
     finally:
         conn.close()
