@@ -10,10 +10,23 @@ try:
 except ImportError:
     from airflow_home.dags.scripts.helpers import generate_filename
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename="logs.log", encoding="utf-8", level=logging.INFO)
 
 
 def transform_data(source_bucket, destination_bucket):
+    """
+    Executes full Transform process, invoking table transformation functions & save_df_to_parquet_s3
+
+    Parameters:
+        source_bucket (str): Name of the source S3 bucket (containing previously extracted JSON files)
+        destination_bucket (str): Name of the target S3 bucket
+
+    Returns:
+        Nothing
+
+    Side Effects:
+        On success - JSON files fetched from source S3 bucket, transformed with pandas and saved to target S3 bucket in parquet format
+    """
     save_df_to_parquet_s3(
         "fact_players", transform_fact_players(source_bucket), destination_bucket
     )
@@ -29,6 +42,19 @@ def transform_data(source_bucket, destination_bucket):
 
 
 def retrieve_s3_json(bucket_name, file_name):
+    """
+    Executes full Transform process, invoking table transformation functions & save_df_to_parquet_s3
+
+    Parameters:
+        bucket_name (str): Name of the source S3 bucket
+        file_name (str): Name of the file (key)
+
+    Returns:
+        dict: JSON file loaded as a dictionary object
+
+    Side Effects:
+        On failure - error message logged
+    """
     try:
         s3 = boto3.client("s3")
         response = s3.get_object(
@@ -45,9 +71,7 @@ def retrieve_s3_json(bucket_name, file_name):
 
 def save_df_to_parquet_s3(table_name, table_df, destination_bucket):
     """
-    Save a dataframe to s3 bucket
-
-    This function retrieves a desired table_name, dataframe, and s3 bucket name, converts the dataframe to parquet file format and uploads this file to the bucket using awswrangler.
+    Retrieves a desired table_name, dataframe, and s3 bucket name, converts the dataframe to parquet file format and uploads this file to the bucket using awswrangler.
 
     Parameters:
         table_name (str): The name of the table which you want to use in the s3 key
@@ -60,10 +84,6 @@ def save_df_to_parquet_s3(table_name, table_df, destination_bucket):
     Side Effects:
         On success - Parquet file added to S3 bucket
         On failure - Exception printed to console
-
-    Example:
-        >>> convert_dataframe_to_parquet('example_table', dataframe, 'example-bucket')
-        Print - Saved to s3://{bucket-name/timestamp/table-name}.parquet
     """
 
     try:
@@ -79,6 +99,18 @@ def save_df_to_parquet_s3(table_name, table_df, destination_bucket):
 
 
 def transform_fact_players(bucket_name):
+    """
+    Transforms data to create transform_fact_players table
+
+    Parameters:
+        bucket_name (str): Name of the source S3 bucket
+
+    Returns:
+        dataFrame: transformed data object
+
+    Side Effects:
+        On failure - error message logged
+    """
     try:
         current_timestamp = datetime.now().strftime("%Y-%m-%d")
 
@@ -161,6 +193,18 @@ def transform_fact_players(bucket_name):
 
 
 def transform_dim_players(bucket_name):
+    """
+    Transforms data to create transform_dim_players table
+
+    Parameters:
+        bucket_name (str): Name of the source S3 bucket
+
+    Returns:
+        dataFrame: transformed data object
+
+    Side Effects:
+        On failure - error message logged
+    """
     try:
         current_timestamp = datetime.now().strftime("%Y-%m-%d")
 
@@ -189,6 +233,18 @@ def transform_dim_players(bucket_name):
 
 
 def transform_dim_teams(bucket_name):
+    """
+    Transforms data to create transform_dim_teams table
+
+    Parameters:
+        bucket_name (str): Name of the source S3 bucket
+
+    Returns:
+        dataFrame: transformed data object
+
+    Side Effects:
+        On failure - error message logged
+    """
     try:
         current_timestamp = datetime.now().strftime("%Y-%m-%d")
 
@@ -220,6 +276,18 @@ def transform_dim_teams(bucket_name):
 
 
 def transform_dim_fixtures(bucket_name):
+    """
+    Transforms data to create transform_dim_fixtures table
+
+    Parameters:
+        bucket_name (str): Name of the source S3 bucket
+
+    Returns:
+        dataFrame: transformed data object
+
+    Side Effects:
+        On failure - error message logged
+    """
     try:
         current_timestamp = datetime.now().strftime("%Y-%m-%d")
 
